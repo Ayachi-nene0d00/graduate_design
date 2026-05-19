@@ -1,0 +1,5 @@
+sk-exuorozqvtbnmlzejiqpafragvrllfxcekainvahriwqtboa  硅基流动API
+选用大模型：THUDM/GLM-4-9B-0414  or 'Qwen/Qwen2.5-7B-Instruct'  85行
+
+sk-34c437c2145747faafa329a10055447c
+deepseek api

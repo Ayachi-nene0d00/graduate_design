@@ -1,0 +1,145 @@
+{
+	"pages": [
+		{
+			"path": "pages/login",
+			"style": {
+				"navigationBarTitleText": "微信登录",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "AI 识鸟",
+				"enablePullDownRefresh": false,
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/search/search",
+			"style": {
+				"navigationBarTitleText": "鸟类知识检索",
+				"backgroundColor": "#FFFFFF",
+				"navigationBarBackgroundColor": "#87CEEB"
+			}
+		},
+		{
+			"path": "pages/history/history",
+			"style": {
+				"navigationBarTitleText": "识别历史",
+				"backgroundColor": "#FFFFFF",
+				"navigationBarBackgroundColor": "#87CEEB"
+			}
+		},
+		{
+			"path": "pages/share/share",
+			"style": {
+				"navigationBarTitleText": "识别结果",
+				"navigationBarBackgroundColor": "#87CEEB",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/webview/webview",
+			"style": {
+				"navigationBarTitleText": "详情百科",
+				"navigationBarBackgroundColor": "#87CEEB"
+			}
+		},
+		{
+			"path": "pages/profile",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/server_config",
+			"style": {
+				"navigationBarTitleText": "服务配置",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/encyclopedia",
+			"style": {
+				"navigationBarTitleText": "鸟类科普库",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/encyclopedia_detail",
+			"style": {
+				"navigationBarTitleText": "科普详情",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/aiqa",
+			"style": {
+				"navigationBarTitleText": "AI问答",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/gps",
+			"style": {
+				"navigationBarTitleText": "GPS推荐",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/quiz",
+			"style": {
+				"navigationBarTitleText": "Quiz问答",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/compare",
+			"style": {
+				"navigationBarTitleText": "鸟类对比",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/terms",
+			"style": {
+				"navigationBarTitleText": "使用条款",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/privacy",
+			"style": {
+				"navigationBarTitleText": "隐私政策",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/copyright",
+			"style": {
+				"navigationBarTitleText": "版权声明",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		},
+		{
+			"path": "pages/about",
+			"style": {
+				"navigationBarTitleText": "关于",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
+		}
+
+
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "鸟类识别",
+		"navigationBarBackgroundColor": "#87CEEB",
+		"backgroundColor": "#FFFFFF",
+		"app-plus": {
+			"background": "#FFFFFF"
+		}
+	}
+}

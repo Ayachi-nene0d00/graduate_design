@@ -1,0 +1,36 @@
+# 数据集原始图片（CUB-200-2011 和你自己的扩展）
+bird_species_raw/
+datasets/
+image/
+runs/
+
+# 模型权重文件（.pt 文件较大）
+*.pt
+
+# 训练日志和输出
+runs/
+*.log
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+
+# 其他临时文件
+*.tmp
+*.bak
+
+# 静态图片（鸟类数据集图片）
+static/bird_images/
+
+# ONNX 模型文件
+*.onnx
+
+# 其他可能的大文件
+*.pt
+*.pth
+*.h5
+*.npz

@@ -1,0 +1,87 @@
+【鸟类识别项目全链路技术总结】
+
+一、数据流转全流程
+------------------
+1. 原始数据准备
+- 原始图片位于 bird_species_raw/CUB_200_2011/images/。
+- 可选扩展：运行 python tools/merge_semi_bd200_to_cub.py 合并 Semi-BD200 类别。
+
+2. 数据集转换
+- python convert_dataset.py 按类别划分生成 datasets/birds/{train,val}/class/。
+
+3. 数据增强
+- python augment_dataset.py 增强图片，输出 datasets/birds_augmented/，224×224 裁剪。
+- 训练默认读取 datasets/birds。
+
+4. 模型训练与导出
+- python retrain_better.py，默认加载 runs/classify/bird_cls_final_stable/weights/best.pt 微调。
+- 支持 yolov8n-cls.pt 从头训练。
+- 训练参数：imgsz=224，auto_augment="randaugment"，amp=True，batch自动适配，workers=8，patience=15。
+- 训练后自动导出 ONNX（opset 12，simplify=True），复制到 static/bird_cls_final_stable.onnx。
+
+5. 模型评估与测试
+- python test_model_bird.py，随机抽取5张验证集图片，输出预测与真实标签对比。
+
+6. 推理与API服务
+- FastAPI 后端（backend/main.py）通过 uvicorn 启动，自动查找最新 best.pt 加载模型，提供 /predict 接口。
+- 前端 UniApp 通过 HTTP POST 上传图片，后端用 PIL/BytesIO 读取图片推理，返回 JSON。
+
+7. 前端 ONNX 集成
+- UniApp 通过 onnxruntime-web@1.14.0 加载 static/bird_cls_final_stable.onnx，WebGL 推理。
+- 图片预处理：resize 到 224，ImageNet mean/std 归一化，CHW float32。
+
+二、主要脚本与页面功能
+----------------------
+1. 数据处理与增强
+- tools/merge_semi_bd200_to_cub.py：合并 Semi-BD200 类别，更新元数据。
+- convert_dataset.py：按类别/训练集划分图片。
+- augment_dataset.py：增强图片，输出 224×224。
+
+2. 训练与导出
+- retrain_better.py：训练/微调模型，自动导出 ONNX。
+- get_names.py：导出类别名数组供前端使用。
+
+3. 测试与评估
+- test_model_bird.py：快速评估模型效果。
+- check_gpu.py：检查 CUDA/GPU 环境。
+
+4. FastAPI 后端
+- backend/main.py：
+  - /predict：图片推理，返回类别名和置信度。
+  - /api/quiz：动态生成鸟类知识题库。
+  - /api/recommend：地理推荐鸟类。
+  - 静态资源挂载 /static。
+  - 自动查找最新 best.pt。
+
+5. UniApp 前端主要页面
+- App.vue：全局生命周期与登录检查。
+- pages/index/index.vue：主页面，集成识别、推荐、导航等。
+- pages/encyclopedia.vue：鸟类百科，支持筛选、搜索。
+- pages/aiqa.vue：AI 问答。
+- pages/history.vue：识别历史记录。
+- pages/search/search.vue：搜索与历史。
+- pages/share/share.vue：识别结果分享。
+- pages/webview/webview.vue：内嵌网页。
+
+三、关键约定与易错点
+----------------------
+- 路径均用原始 Windows 路径，BASE_DIR 统一管理。
+- 模型查找自动按最新 best.pt。
+- 图片推理全程内存处理，不落盘。
+- 前端 ONNX 路径与后端 static 保持同步。
+- 仅 APP-PLUS 支持 ONNX-WebGL，H5 需兼容判断。
+- API 地址需与后端实际部署一致。
+
+四、目录结构与文件组织
+----------------------
+- bird_species_raw/：原始数据集
+- datasets/：转换与增强后数据
+- runs/：训练输出
+- static/：ONNX 模型及静态资源
+- backend/：FastAPI 后端
+- Uni_app_relation/Test2/：UniApp 前端
+- tools/：数据处理脚本
+
+五、总结
+--------
+本项目实现了从原始数据到端侧/服务端推理的全链路闭环，采用 YOLOv8 分类模型，支持本地训练、ONNX 导出、FastAPI 局域网服务、UniApp 多端前端、WebGL 端侧推理。各环节均有详细脚本与接口支撑，便于扩展和维护。
