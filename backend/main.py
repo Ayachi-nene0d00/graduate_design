@@ -64,114 +64,55 @@ def get_db_connection():
 
 @app.get("/api/quiz")
 async def get_quiz():
+    connection = None
     try:
-        # 连接数据库
         connection = get_db_connection()
         with connection.cursor() as cursor:
-            # 动态生成基于 bird 表的题目，这里我们直接查询 5 只鸟的各个字段
-            sql = "SELECT name, family, protect_level, region, habit, feature FROM bird ORDER BY RAND() LIMIT 5"
+            sql = """
+                SELECT quiz_id, question, option_a, option_b, option_c, option_d, correct_answer, bird_id
+                FROM quiz
+                WHERE question IS NOT NULL
+                ORDER BY RAND()
+                LIMIT 5
+            """
             cursor.execute(sql)
-            birds = cursor.fetchall()
-            
-            # 为了生成干扰项，我们再取一批包含名字的用于选项
-            sql_options = "SELECT name FROM bird ORDER BY RAND() LIMIT 20"
-            cursor.execute(sql_options)
-            other_birds = [b['name'] for b in cursor.fetchall()]
-
-        connection.close()
-
-        import random
+            quiz_rows = cursor.fetchall()
 
         questions = []
-        for bird in birds:
-            # 随机挑选一种题型
-            # 0: 根据特征猜鸟名
-            # 1: 问某种鸟的科属
-            # 2: 问某种鸟的保护级别
-            # 3: 问某种鸟的分布区域
-            q_type = random.choice([0, 1, 2, 3])
-
-            if q_type == 0 and bird['feature']:
-                feature = bird['feature'][:30] + "..." if len(bird['feature']) > 30 else bird['feature']
-                question_text = f"外形特征为“{feature}”的鸟类是以下哪种？"
-                correct_ans = bird['name']
-                options = random.sample([b for b in other_birds if b != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 1 and bird['family']:
-                question_text = f"“{bird['name']}”属于哪个科属？"
-                correct_ans = bird['family']
-                # 从所有科属里随便造几个选项（这里简化处理）
-                fake_options = ["鸭科", "鹰科", "雀科", "鸥科", "鹭科", "鸽科"]
-                options = random.sample([f for f in fake_options if f != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 2 and bird['protect_level']:
-                question_text = f"“{bird['name']}”的保护级别是什么？"
-                correct_ans = bird['protect_level']
-                fake_options = ["国家一级保护动物", "国家二级保护动物", "三有保护动物", "无危", "濒危"]
-                options = random.sample([f for f in fake_options if f != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 3 and bird['region']:
-                region = bird['region'][:20] + "..." if len(bird['region']) > 20 else bird['region']
-                question_text = f"分布在“{region}”及附近区域的鸟类是："
-                correct_ans = bird['name']
-                options = random.sample([b for b in other_birds if b != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-
-        # 为了保证一定要有5题（有字段为空的可能）
-        while len(questions) < 5:
-            # 补足
+        for row in quiz_rows:
+            answer = (row.get("correct_answer") or "").strip().upper()
+            if answer not in {"A", "B", "C", "D"}:
+                continue
             questions.append({
-                "question": "以下哪项是计算机经常识别的鸟类？",
-                "option_a": "猫", "option_b": "狗", "option_c": "麻雀", "option_d": "鱼",
-                "correct_answer": "C"
+                "quiz_id": row.get("quiz_id"),
+                "bird_id": row.get("bird_id"),
+                "question": row.get("question"),
+                "option_a": row.get("option_a") or "",
+                "option_b": row.get("option_b") or "",
+                "option_c": row.get("option_c") or "",
+                "option_d": row.get("option_d") or "",
+                "correct_answer": answer
             })
+
+        if not questions:
+            return {
+                "code": -1,
+                "message": "quiz表暂无可用题目"
+            }
 
         return {
             "code": 0,
-            "data": questions[:5],
-            "message": "动态生成题库成功"
+            "data": questions,
+            "message": "从quiz表获取题库成功"
         }
     except Exception as e:
         return {
             "code": -1,
             "message": f"数据库连接或查询失败: {str(e)}"
         }
+    finally:
+        if connection:
+            connection.close()
 
 @app.get("/api/recommend")
 async def get_recommendations(lat: float = None, lon: float = None, city: str = "四川"):
