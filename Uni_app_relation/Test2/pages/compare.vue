@@ -91,6 +91,7 @@
 <script>
 // 脚本部分：处理鸟类选择和信息获取逻辑
 import { requestApi, getBaseUrl } from '@/common/api';
+const BLUR_DELAY_MS = 200;
 export default {
 	data() {
 		return {
@@ -157,12 +158,12 @@ export default {
 		onBlur1() {
 			setTimeout(() => {
 				this.showSuggestions1 = false;
-			}, 200);
+			}, BLUR_DELAY_MS);
 		},
 		onBlur2() {
 			setTimeout(() => {
 				this.showSuggestions2 = false;
-			}, 200);
+			}, BLUR_DELAY_MS);
 		},
 		selectBird1(name) {
 			this.bird1 = name;
