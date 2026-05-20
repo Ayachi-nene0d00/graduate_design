@@ -53,7 +53,8 @@
 </template>
 
 <script>
-import { requestApi } from '@/common/api';
+// 新增导入 getBaseUrl，和encyclopedia.vue保持一致
+import { requestApi, getBaseUrl } from '@/common/api';
 export default {
 		data() {
 		return {
@@ -136,7 +137,15 @@ export default {
 				});
 				const response = res.data ? res : (res[1] || {});
 				if (response.statusCode === 200 && response.data.code === 0) {
-					this.birds = response.data.data;
+					// 核心修改：按照encyclopedia.vue的逻辑处理图片URL
+					this.birds = response.data.data.map(b => ({
+						...b,
+						image_url: b.image_url
+							? (b.image_url.startsWith('http')
+								? b.image_url
+								: getBaseUrl() + (b.image_url.startsWith('/') ? b.image_url : '/' + b.image_url))
+							: 'https://img.haoma.com/bird_placeholder.jpg'
+					}));
 				} else {
 					uni.showToast({ title: '获取推荐数据失败', icon: 'none' });
 				}
@@ -152,7 +161,7 @@ export default {
 			return text.length > length ? text.substring(0, length) + '...' : text;
 		},
 		onImgError(index) {
-			// 如果图片加载失败，替换为一个占位图
+			// 图片加载失败时兜底，和encyclopedia.vue保持一致
 			this.birds[index].image_url = 'https://img.haoma.com/bird_placeholder.jpg';
 		}
 	}
