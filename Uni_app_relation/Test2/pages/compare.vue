@@ -92,6 +92,7 @@
 // 脚本部分：处理鸟类选择和信息获取逻辑
 import { requestApi, getBaseUrl } from '@/common/api';
 const BLUR_DELAY_MS = 200;
+const MAX_SUGGESTIONS = 20;
 export default {
 	data() {
 		return {
@@ -104,11 +105,17 @@ export default {
 			filteredNames1: [],
 			filteredNames2: [],
 			showSuggestions1: false,
-			showSuggestions2: false
+			showSuggestions2: false,
+			blurTimer1: null,
+			blurTimer2: null
 		};
 	},
 	onLoad() {
 		this.loadBirds();
+	},
+	onUnload() {
+		if (this.blurTimer1) clearTimeout(this.blurTimer1);
+		if (this.blurTimer2) clearTimeout(this.blurTimer2);
 	},
 	methods: {
 		async loadBirds() {
@@ -118,8 +125,8 @@ export default {
 				if (response.statusCode === 200 && response.data && response.data.code === 0) {
 					this.birds = response.data.data;
 					this.birdNames = this.birds.map(b => b.name);
-					this.filteredNames1 = this.birdNames.slice(0, 20);
-					this.filteredNames2 = this.birdNames.slice(0, 20);
+					this.filteredNames1 = this.birdNames.slice(0, MAX_SUGGESTIONS);
+					this.filteredNames2 = this.birdNames.slice(0, MAX_SUGGESTIONS);
 				}
 			} catch (e) {
 				this.birds = [];
@@ -133,7 +140,7 @@ export default {
 			const matched = key
 				? this.birdNames.filter(name => name.toLowerCase().includes(key))
 				: this.birdNames;
-			return matched.slice(0, 20);
+			return matched.slice(0, MAX_SUGGESTIONS);
 		},
 		onInput1(e) {
 			const value = e.detail.value || '';
@@ -148,20 +155,24 @@ export default {
 			this.showSuggestions2 = true;
 		},
 		onFocus1() {
+			if (this.blurTimer1) clearTimeout(this.blurTimer1);
 			this.filteredNames1 = this.getFilteredNames(this.search1);
 			this.showSuggestions1 = true;
 		},
 		onFocus2() {
+			if (this.blurTimer2) clearTimeout(this.blurTimer2);
 			this.filteredNames2 = this.getFilteredNames(this.search2);
 			this.showSuggestions2 = true;
 		},
 		onBlur1() {
-			setTimeout(() => {
+			if (this.blurTimer1) clearTimeout(this.blurTimer1);
+			this.blurTimer1 = setTimeout(() => {
 				this.showSuggestions1 = false;
 			}, BLUR_DELAY_MS);
 		},
 		onBlur2() {
-			setTimeout(() => {
+			if (this.blurTimer2) clearTimeout(this.blurTimer2);
+			this.blurTimer2 = setTimeout(() => {
 				this.showSuggestions2 = false;
 			}, BLUR_DELAY_MS);
 		},
