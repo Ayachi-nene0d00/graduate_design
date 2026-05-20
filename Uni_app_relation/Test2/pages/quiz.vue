@@ -79,7 +79,7 @@ export default {
 	},
 	methods: {
 		async localizeBirdNameInQuestion(questionText) {
-			if (!questionText || (questionText.indexOf(QUESTION_TYPE_MARKERS.FAMILY) === -1 && questionText.indexOf(QUESTION_TYPE_MARKERS.PROTECT_LEVEL) === -1)) {
+			if (!this.shouldLocalizeBirdNameInQuestion(questionText)) {
 				return questionText;
 			}
 			const match = questionText.match(/“([^”]+)”/);
@@ -88,9 +88,13 @@ export default {
 			const escaped = match[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 			return questionText.replace(new RegExp(`“${escaped}”`, 'g'), `“${localized}”`);
 		},
+		shouldLocalizeBirdNameInQuestion(questionText) {
+			if (!questionText) return false;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FAMILY) || questionText.includes(QUESTION_TYPE_MARKERS.PROTECT_LEVEL);
+		},
 		shouldLocalizeOptions(questionText) {
 			if (!questionText) return false;
-			return questionText.indexOf(QUESTION_TYPE_MARKERS.FEATURE) !== -1 || questionText.indexOf(QUESTION_TYPE_MARKERS.REGION) !== -1;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FEATURE) || questionText.includes(QUESTION_TYPE_MARKERS.REGION);
 		},
 		async localizeQuizItem(item) {
 			const localizedQuestionPromise = this.localizeBirdNameInQuestion(item.q);
@@ -135,11 +139,13 @@ export default {
 					}
 					this.questions = await Promise.all(apiQuestions.map((item) => this.localizeQuizItem(item)));
 				} else {
-					this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 				}
 			} catch (e) {
 				console.error('Quiz fetch error:', e);
-				this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 			} finally {
 				uni.hideLoading();
 			}
