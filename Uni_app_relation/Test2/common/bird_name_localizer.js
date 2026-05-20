@@ -21,7 +21,9 @@ function buildCandidateKeywords(rawName) {
 	if (!raw) return [];
 	const noPrefix = raw.includes('.') ? raw.split('.').slice(1).join('.') : raw;
 	const normalized = noPrefix.replace(/_/g, ' ').trim();
-	const candidates = [raw, noPrefix, normalized];
+	const withUnderscores = noPrefix.replace(/\s+/g, '_').trim();
+	const withoutDelimiters = noPrefix.replace(/[.\s_-]+/g, '').trim();
+	const candidates = [raw, noPrefix, normalized, withUnderscores, withoutDelimiters];
 	const seen = new Set();
 	return candidates.filter((item) => {
 		const key = normalizeCompareName(item);
@@ -85,7 +87,11 @@ export async function localizeBirdName(name, requestApiFn) {
 	}
 
 	const nameMap = readNameMap();
-	if (nameMap[raw]) return nameMap[raw];
+	if (nameMap[raw]) {
+		const cached = formatBirdDisplayName(nameMap[raw]);
+		// 旧缓存可能是英文回退值，保留中文缓存并允许英文缓存重新查询
+		if (containsChinese(cached)) return cached;
+	}
 
 	const keywords = buildCandidateKeywords(raw);
 	for (const keyword of keywords) {
