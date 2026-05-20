@@ -52,7 +52,7 @@
     </view>
 
     <view class="recommend-card" @click="goToGPS">
-     <view class="recommend-img-wrap">
+      <view class="recommend-img-wrap">
         <image class="recommend-img" :src="recommendImg" mode="aspectFit" @error="handleRecommendImageError" />
       </view>
       <view class="recommend-overlay">
@@ -76,7 +76,7 @@
         :key="index"
         @click="openHistoryItem(item)"
       >
-      <view class="recent-img-wrap">
+        <view class="recent-img-wrap">
           <image class="recent-img" :src="item.img" mode="aspectFit" />
         </view>
         <view class="recent-info">
@@ -580,7 +580,7 @@ export default {
         }
       });
     },
-	async getGPSRecommend() {
+		async getGPSRecommend() {
 			try {
 				// 与 gps.vue 默认省份保持一致，未定位时回退到默认省份
 				const city = uni.getStorageSync('gps_city') || DEFAULT_PROVINCE;
@@ -611,9 +611,9 @@ export default {
 			const baseUrl = getBaseUrl().replace(/\/$/, '');
 			return baseUrl + (url.startsWith('/') ? url : '/' + url);
 		},
-		 handleRecommendImageError() {
+    handleRecommendImageError() {
       this.recommendImg = BIRD_PLACEHOLDER;
-        },
+    },
 		formatName(name) {
 			if(!name) return "";
 			return name.includes('.') ? name.split('.')[1].replace(/_/g, ' ') : name;
@@ -885,7 +885,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
-.recommend-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f6fa; }
+.recommend-img { width: 100%; height: 100%; }
 .recommend-overlay {
   position: absolute;
   left: 0;
@@ -977,4 +977,3 @@ export default {
 .recognize-icon { font-size: 40rpx; margin-bottom: 6rpx; }
 .recognize-text { font-size: 28rpx; font-weight: 700; }
 </style>
-
