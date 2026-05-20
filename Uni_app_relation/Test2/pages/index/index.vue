@@ -538,11 +538,14 @@ export default {
 	methods: {
     async loadHistory() {
       const originHistory = uni.getStorageSync('bird_history') || [];
+      let changed = false;
       this.historyList = await Promise.all(originHistory.map(async (item) => {
         const localizedName = await localizeBirdName(item.name, requestApi);
-        return localizedName === item.name ? item : { ...item, name: localizedName };
+        if (localizedName === item.name) return item;
+        changed = true;
+        return { ...item, name: localizedName };
       }));
-      if (JSON.stringify(this.historyList) !== JSON.stringify(originHistory)) {
+      if (changed) {
         uni.setStorageSync('bird_history', this.historyList);
       }
       this.latestHistoryName = this.historyList.length ? this.historyList[0].name : '';

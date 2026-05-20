@@ -91,7 +91,7 @@ export async function localizeBirdName(name, requestApiFn) {
 	for (const keyword of keywords) {
 		try {
 			const res = await requestApiFn({
-				path: `/api/bird?page=1&page_size=10&keyword=${encodeURIComponent(keyword)}`,
+				path: `/api/bird?page=1&page_size=20&keyword=${encodeURIComponent(keyword)}`,
 				method: 'GET',
 				timeout: 5000
 			});
@@ -99,11 +99,12 @@ export async function localizeBirdName(name, requestApiFn) {
 			const cnName = findChineseName(birdList, keywords);
 			if (cnName) {
 				nameMap[raw] = cnName;
-				keywords.forEach((k) => { nameMap[k] = cnName; });
 				writeNameMap(nameMap);
 				return cnName;
 			}
-		} catch (e) {}
+		} catch (e) {
+			console.warn('鸟名本地化查询失败:', e);
+		}
 	}
 
 	const fallback = formatBirdDisplayName(raw);
