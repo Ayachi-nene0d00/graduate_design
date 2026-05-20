@@ -103,11 +103,7 @@ export default {
 			}
 		},
 		onQueryInput(type) {
-			if (type === 1) {
-				this.showOptions1 = true;
-				return;
-			}
-			this.showOptions2 = true;
+			this[`showOptions${type}`] = true;
 		},
 		selectBird(type, name) {
 			if (type === 1) {
@@ -140,18 +136,19 @@ export default {
 				urls: [url],
 				current: url
 			});
+		},
+		filterBirdNames(query) {
+			const q = (query || '').trim().toLowerCase();
+			if (!q) return this.birdNames.slice(0, 20);
+			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
 		}
 	},
 	computed: {
 		filteredBirds1() {
-			const q = (this.query1 || '').trim().toLowerCase();
-			if (!q) return this.birdNames.slice(0, 20);
-			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
+			return this.filterBirdNames(this.query1);
 		},
 		filteredBirds2() {
-			const q = (this.query2 || '').trim().toLowerCase();
-			if (!q) return this.birdNames.slice(0, 20);
-			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
+			return this.filterBirdNames(this.query2);
 		}
 	}
 };
