@@ -92,7 +92,7 @@
 // 脚本部分：处理鸟类选择和信息获取逻辑
 import { requestApi, getBaseUrl } from '@/common/api';
 const BLUR_DELAY_MS = 200;
-const MAX_SUGGESTIONS = 20;
+const MAX_SUGGESTION_ITEMS = 20;
 export default {
 	data() {
 		return {
@@ -116,6 +116,8 @@ export default {
 	onUnload() {
 		if (this.blurTimer1) clearTimeout(this.blurTimer1);
 		if (this.blurTimer2) clearTimeout(this.blurTimer2);
+		this.showSuggestions1 = false;
+		this.showSuggestions2 = false;
 	},
 	methods: {
 		async loadBirds() {
@@ -125,8 +127,8 @@ export default {
 				if (response.statusCode === 200 && response.data && response.data.code === 0) {
 					this.birds = response.data.data;
 					this.birdNames = this.birds.map(b => b.name);
-					this.filteredNames1 = this.birdNames.slice(0, MAX_SUGGESTIONS);
-					this.filteredNames2 = this.birdNames.slice(0, MAX_SUGGESTIONS);
+					this.filteredNames1 = this.birdNames.slice(0, MAX_SUGGESTION_ITEMS);
+					this.filteredNames2 = this.birdNames.slice(0, MAX_SUGGESTION_ITEMS);
 				}
 			} catch (e) {
 				this.birds = [];
@@ -140,7 +142,7 @@ export default {
 			const matched = key
 				? this.birdNames.filter(name => name.toLowerCase().includes(key))
 				: this.birdNames;
-			return matched.slice(0, MAX_SUGGESTIONS);
+			return matched.slice(0, MAX_SUGGESTION_ITEMS);
 		},
 		onInput1(e) {
 			const value = e.detail.value || '';
