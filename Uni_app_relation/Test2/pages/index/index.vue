@@ -577,6 +577,7 @@ export default {
     },
 		async getGPSRecommend() {
 			try {
+				// 与 gps.vue 默认省份保持一致，未定位时回退到四川
 				const city = uni.getStorageSync('gps_city') || '四川';
 				const res = await requestApi({
 					path: `/api/recommend?city=${encodeURIComponent(city)}`,
