@@ -129,7 +129,9 @@ export default {
 		},
 		async fetchRecommendations(city) {
 			this.loading = true;
-			uni.setStorageSync('gps_city', city);
+			if (uni.getStorageSync('gps_city') !== city) {
+				uni.setStorageSync('gps_city', city);
+			}
 			try {
 				const res = await requestApi({
 					path: `/api/recommend?city=${encodeURIComponent(city)}`,
