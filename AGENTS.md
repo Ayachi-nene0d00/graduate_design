@@ -23,11 +23,11 @@
 - **Data Flow**: UniApp `uni.uploadFile` -> PC FastAPI -> YOLO Model Predict -> JSON return `{"bird_name": "...", "confidence": ...}`.
 
 ### Additional API Endpoints (since 2026-05)
-- **/api/quiz**: Returns a set of 5 quiz questions about birds, dynamically generated from the MySQL `bird` table. Used for educational or quiz features in the frontend.
+- **/api/quiz**: Returns quiz questions directly from the MySQL `quiz` table (`question`, `option_a/b/c/d`, `correct_answer`, `bird_id`), typically random 5 questions for frontend quiz mode.
 - **/api/recommend**: Returns a list of bird species relevant to a given region/city, based on the MySQL `bird` table. Used for location-based recommendations.
 - **/api/bird**: Bird encyclopedia list/search endpoint with pagination and fuzzy search by keyword (name, english_name, family, region). Supports page and page_size query params.
 - **/api/bird/{bird_id}**: Bird detail endpoint returning full info for a specific bird by ID.
-- Both endpoints require a running MySQL instance with the `bird_classification_app` database and a populated `bird` table (fields: `name`, `family`, `protect_level`, `region`, `habit`, `feature`, etc.).
+- These endpoints require a running MySQL instance with the `bird_classification_app` database. `/api/recommend` and `/api/bird*` rely on `bird` table data; `/api/quiz` relies on populated `quiz` table data.
 
 ## Conventions & patterns
 - **Paths**: prefer raw strings (e.g., `r"F:\\Python-program\\111"`) to avoid backslash escapes.
@@ -39,7 +39,7 @@
 - **API Framework**: FastAPI for lightweight, high-performance routing.
 - **Host & Port**: Bind to `0.0.0.0` to allow external network (LAN) requests, typical port `8000`.
 - **Image handling**: Do not save uploaded images to disk unless debugging. Read directly from `UploadFile` via PIL/BytesIO, pass to YOLO.
-- **MySQL dependency**: The backend expects a MySQL server running locally with user `root` and database `bird_classification_app`. The `bird` table must exist and be populated for `/api/quiz` and `/api/recommend` to function.
+- **MySQL dependency**: The backend expects a MySQL server running locally with user `root` and database `bird_classification_app`. The `bird` table must exist for `/api/recommend` and `/api/bird*`, and the `quiz` table must exist for `/api/quiz`.
 - **Intranet connectivity**: Automatically detects local IP using socket and generates QR code for easy mobile access on the same LAN. Install `qrcode[pil]` for QR functionality.
 - **AI API key management**: Place your AI API key in `API.txt` or set as an environment variable (`SILICONFLOW_API_KEY` or `DEEPSEEK_API_KEY`). The backend will use this key to authenticate requests to the AI Q&A service.
 
