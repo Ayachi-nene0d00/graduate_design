@@ -21,9 +21,9 @@ function buildCandidateKeywords(rawName) {
 	if (!raw) return [];
 	const noPrefix = raw.includes('.') ? raw.split('.').slice(1).join('.') : raw;
 	const normalized = noPrefix.replace(/_/g, ' ').trim();
-	const spacesToUnderscores = noPrefix.replace(/\s+/g, '_').trim();
-	const removedDelimiters = noPrefix.replace(/[.\s_-]+/g, '').trim();
-	const candidates = [raw, noPrefix, normalized, spacesToUnderscores, removedDelimiters];
+	const withUnderscores = noPrefix.replace(/\s+/g, '_').trim();
+	const withoutDelimiters = noPrefix.replace(/[.\s_-]+/g, '').trim();
+	const candidates = [raw, noPrefix, normalized, withUnderscores, withoutDelimiters];
 	const seen = new Set();
 	return candidates.filter((item) => {
 		const key = normalizeCompareName(item);
