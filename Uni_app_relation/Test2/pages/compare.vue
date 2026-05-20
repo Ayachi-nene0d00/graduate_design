@@ -10,7 +10,7 @@
 				class="search-input"
 				placeholder="搜索并选择鸟类1"
 				@focus="showOptions1 = true"
-				@input="onQueryInput(1)"
+				@input="showOptionsForInput(1)"
 			/>
 			<scroll-view v-if="showOptions1 && filteredBirds1.length" scroll-y class="options-list">
 				<view class="option-item" v-for="name in filteredBirds1" :key="`b1-${name}`" @click="selectBird(1, name)">
@@ -24,7 +24,7 @@
 				class="search-input"
 				placeholder="搜索并选择鸟类2"
 				@focus="showOptions2 = true"
-				@input="onQueryInput(2)"
+				@input="showOptionsForInput(2)"
 			/>
 			<scroll-view v-if="showOptions2 && filteredBirds2.length" scroll-y class="options-list">
 				<view class="option-item" v-for="name in filteredBirds2" :key="`b2-${name}`" @click="selectBird(2, name)">
@@ -105,7 +105,7 @@ export default {
 				this.birdNameEntries = [];
 			}
 		},
-		onQueryInput(type) {
+		showOptionsForInput(type) {
 			if (type === 1) {
 				this.showOptions1 = true;
 				return;
@@ -151,7 +151,15 @@ export default {
 		filterBirdNames(query) {
 			const q = (query || '').trim().toLowerCase();
 			if (!q) return this.birdNames.slice(0, 20);
-			return this.birdNameEntries.filter(item => item.lower.includes(q)).map(item => item.name).slice(0, 20);
+			const result = [];
+			for (let i = 0; i < this.birdNameEntries.length; i += 1) {
+				const item = this.birdNameEntries[i];
+				if (item.lower.includes(q)) {
+					result.push(item.name);
+					if (result.length >= 20) break;
+				}
+			}
+			return result;
 		}
 	},
 	computed: {
