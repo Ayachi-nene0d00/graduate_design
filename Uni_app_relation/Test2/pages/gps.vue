@@ -139,9 +139,7 @@ export default {
 				if (response.statusCode === 200 && response.data.code === 0) {
 					this.birds = (response.data.data || []).map((bird) => {
 						const normalizedImageUrl = this.normalizeImageUrl(bird.image_url);
-						return normalizedImageUrl === bird.image_url
-							? bird
-							: { ...bird, image_url: normalizedImageUrl };
+						return { ...bird, image_url: normalizedImageUrl };
 					});
 				} else {
 					uni.showToast({ title: '获取推荐数据失败', icon: 'none' });
