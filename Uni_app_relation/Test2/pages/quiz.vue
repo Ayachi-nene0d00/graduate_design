@@ -52,6 +52,13 @@
 <script>
 // 脚本部分：处理Quiz问题选择、显示答案、下一题、完成逻辑和历史记录
 import { requestApi } from '@/common/api';
+import { localizeBirdName } from '@/common/bird_name_localizer';
+const QUESTION_TYPE_MARKERS = {
+	FAMILY: '属于哪个科属',
+	PROTECT_LEVEL: '保护级别',
+	FEATURE: '外形特征为',
+	REGION: '分布在'
+};
 export default {
 	data() {
 		return {
@@ -71,6 +78,36 @@ export default {
 		this.loadQuiz();
 	},
 	methods: {
+		async localizeBirdNameInQuestion(questionText) {
+			if (!this.shouldLocalizeBirdNameInQuestion(questionText)) {
+				return questionText;
+			}
+			const match = questionText.match(/“([^”]+)”/);
+			if (!match || !match[1]) return questionText;
+			const localized = await localizeBirdName(match[1], requestApi);
+			const escaped = match[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return questionText.replace(new RegExp(`“${escaped}”`, 'g'), `“${localized}”`);
+		},
+		shouldLocalizeBirdNameInQuestion(questionText) {
+			if (!questionText) return false;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FAMILY) || questionText.includes(QUESTION_TYPE_MARKERS.PROTECT_LEVEL);
+		},
+		shouldLocalizeOptions(questionText) {
+			if (!questionText) return false;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FEATURE) || questionText.includes(QUESTION_TYPE_MARKERS.REGION);
+		},
+		async localizeQuizItem(item) {
+			const localizedQuestionPromise = this.localizeBirdNameInQuestion(item.q);
+			const localizedOptionsPromise = this.shouldLocalizeOptions(item.q)
+				? Promise.all(item.opts.map((opt) => localizeBirdName(opt, requestApi)))
+				: Promise.resolve(item.opts);
+			const [localizedQuestion, localizedOptions] = await Promise.all([localizedQuestionPromise, localizedOptionsPromise]);
+			return {
+				...item,
+				q: localizedQuestion,
+				opts: localizedOptions
+			};
+		},
 		async loadQuiz() {
 			// 骨架屏提示或Loading效果
 			uni.showLoading({ title: '加载题库中...', mask: true });
@@ -100,13 +137,15 @@ export default {
 						let mockData = dbMockQuestions.sort(() => 0.5 - Math.random());
 						apiQuestions = apiQuestions.concat(mockData).slice(0, 5);
 					}
-					this.questions = apiQuestions;
+					this.questions = await Promise.all(apiQuestions.map((item) => this.localizeQuizItem(item)));
 				} else {
-					this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 				}
 			} catch (e) {
 				console.error('Quiz fetch error:', e);
-				this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 			} finally {
 				uni.hideLoading();
 			}
