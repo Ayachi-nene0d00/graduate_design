@@ -137,7 +137,7 @@ export default {
 				});
 				const response = res.data ? res : (res[1] || {});
 				if (response.statusCode === 200 && response.data.code === 0) {
-					this.birds = (response.data.data || []).map((bird) => ({
+					this.birds = (response.data.data || []).map((bird) => {
 						const normalizedImageUrl = this.normalizeImageUrl(bird.image_url);
 						return normalizedImageUrl === bird.image_url
 							? bird
