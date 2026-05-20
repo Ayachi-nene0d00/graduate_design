@@ -104,7 +104,9 @@
 
 <script>
 // 脚本部分：主页逻辑，包括图片选择、ONNX推理、结果处理、导航跳转等
-import { uploadApi, requestApi } from '@/common/api';
+import { uploadApi, requestApi, getBaseUrl } from '@/common/api';
+const BIRD_PLACEHOLDER = 'https://img.haoma.com/bird_placeholder.jpg';
+const DEFAULT_PROVINCE = '四川';
 export default {
 	data() {
 		return {
@@ -112,7 +114,7 @@ export default {
 			loading: false,
 			dailyBird: '',
 			result: null,
-      recommendImg: 'https://img.haoma.com/bird_placeholder.jpg',
+      recommendImg: BIRD_PLACEHOLDER,
       historyList: [],
       localSearchHistory: [],
       showAllSearchHistory: false,
@@ -574,13 +576,36 @@ export default {
         }
       });
     },
-		getGPSRecommend() {
-			// 模拟GPS推荐，随机选择常见鸟类
-			const commonBirds = [
-				"118.House_Sparrow", "087.Mallard", "029.American_Crow", "047.American_Goldfinch", "073.Blue_Jay"
-			];
-			const randomIndex = Math.floor(Math.random() * commonBirds.length);
-			this.dailyBird = commonBirds[randomIndex];
+	async getGPSRecommend() {
+			try {
+				// 与 gps.vue 默认省份保持一致，未定位时回退到默认省份
+				const city = uni.getStorageSync('gps_city') || DEFAULT_PROVINCE;
+				const res = await requestApi({
+					path: `/api/recommend?city=${encodeURIComponent(city)}`,
+					method: 'GET',
+					timeout: 5000
+				});
+				// 兼容 requestApi 在不同平台返回对象或 [err, response] 两种结构
+				const response = res.data ? res : (res[1] || {});
+				if (response.statusCode === 200 && response.data && response.data.code === 0) {
+					const firstBird = (response.data.data || [])[0];
+					if (firstBird) {
+						this.dailyBird = firstBird.name || '';
+						this.recommendImg = this.normalizeImageUrl(firstBird.image_url);
+						return;
+					}
+				}
+			} catch (e) {
+				console.warn('Get GPS recommendation failed:', e);
+			}
+			this.dailyBird = '';
+			this.recommendImg = BIRD_PLACEHOLDER;
+		},
+		normalizeImageUrl(url) {
+			if (!url) return BIRD_PLACEHOLDER;
+			if (url.startsWith('http')) return url;
+			const baseUrl = getBaseUrl().replace(/\/$/, '');
+			return baseUrl + (url.startsWith('/') ? url : '/' + url);
 		},
 		formatName(name) {
 			if(!name) return "";
