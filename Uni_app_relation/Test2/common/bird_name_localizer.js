@@ -21,7 +21,9 @@ function buildCandidateKeywords(rawName) {
 	if (!raw) return [];
 	const noPrefix = raw.includes('.') ? raw.split('.').slice(1).join('.') : raw;
 	const normalized = noPrefix.replace(/_/g, ' ').trim();
-	const candidates = [raw, noPrefix, normalized];
+	const underscored = noPrefix.replace(/\s+/g, '_').trim();
+	const compact = noPrefix.replace(/[.\s_-]+/g, '').trim();
+	const candidates = [raw, noPrefix, normalized, underscored, compact];
 	const seen = new Set();
 	return candidates.filter((item) => {
 		const key = normalizeCompareName(item);
