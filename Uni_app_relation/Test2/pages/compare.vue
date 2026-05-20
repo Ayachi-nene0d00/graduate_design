@@ -1,10 +1,10 @@
 <!-- compare.vue: 鸟类对比页面，用户可以选择两只鸟类进行对比，显示名称、习性、保护级别等信息 -->
 <template>
-	<view class="compare-page">
+	<view class="compare-page" @click="hideOptions">
 		<view class="header">
 			<text class="title">鸟类对比</text>
 		</view>
-		<view class="search-select">
+		<view class="search-select" @click.stop>
 			<input
 				v-model="query1"
 				class="search-input"
@@ -18,7 +18,7 @@
 				</view>
 			</scroll-view>
 		</view>
-		<view class="search-select">
+		<view class="search-select" @click.stop>
 			<input
 				v-model="query2"
 				class="search-input"
@@ -76,6 +76,7 @@ export default {
 	data() {
 		return {
 			birdNames: [],
+			birdNameEntries: [],
 			bird1: '',
 			bird2: '',
 			birds: [],
@@ -96,14 +97,20 @@ export default {
 				if (response.statusCode === 200 && response.data && response.data.code === 0) {
 					this.birds = response.data.data;
 					this.birdNames = this.birds.map(b => b.name);
+					this.birdNameEntries = this.birdNames.map(name => ({ name, lower: name.toLowerCase() }));
 				}
 			} catch (e) {
 				this.birds = [];
 				this.birdNames = [];
+				this.birdNameEntries = [];
 			}
 		},
 		onQueryInput(type) {
-			this[`showOptions${type}`] = true;
+			if (type === 1) {
+				this.showOptions1 = true;
+				return;
+			}
+			this.showOptions2 = true;
 		},
 		selectBird(type, name) {
 			if (type === 1) {
@@ -114,6 +121,10 @@ export default {
 			}
 			this.bird2 = name;
 			this.query2 = name;
+			this.showOptions2 = false;
+		},
+		hideOptions() {
+			this.showOptions1 = false;
 			this.showOptions2 = false;
 		},
 		getInfo(name, key) {
@@ -140,7 +151,7 @@ export default {
 		filterBirdNames(query) {
 			const q = (query || '').trim().toLowerCase();
 			if (!q) return this.birdNames.slice(0, 20);
-			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
+			return this.birdNameEntries.filter(item => item.lower.includes(q)).map(item => item.name).slice(0, 20);
 		}
 	},
 	computed: {
