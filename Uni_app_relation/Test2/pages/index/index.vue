@@ -104,7 +104,8 @@
 
 <script>
 // 脚本部分：主页逻辑，包括图片选择、ONNX推理、结果处理、导航跳转等
-import { uploadApi, requestApi } from '@/common/api';
+import { uploadApi, requestApi, getBaseUrl } from '@/common/api';
+const BIRD_PLACEHOLDER = 'https://img.haoma.com/bird_placeholder.jpg';
 export default {
 	data() {
 		return {
@@ -574,13 +575,33 @@ export default {
         }
       });
     },
-		getGPSRecommend() {
-			// 模拟GPS推荐，随机选择常见鸟类
-			const commonBirds = [
-				"118.House_Sparrow", "087.Mallard", "029.American_Crow", "047.American_Goldfinch", "073.Blue_Jay"
-			];
-			const randomIndex = Math.floor(Math.random() * commonBirds.length);
-			this.dailyBird = commonBirds[randomIndex];
+		async getGPSRecommend() {
+			try {
+				const city = '四川';
+				const res = await requestApi({
+					path: `/api/recommend?city=${encodeURIComponent(city)}`,
+					method: 'GET',
+					timeout: 5000
+				});
+				const response = res.data ? res : (res[1] || {});
+				if (response.statusCode === 200 && response.data && response.data.code === 0) {
+					const birds = (response.data.data || []).slice(0, 5);
+					if (birds.length > 0) {
+						this.dailyBird = birds[0].name || '';
+						this.recommendImg = this.normalizeImageUrl(birds[0].image_url);
+						return;
+					}
+				}
+			} catch (e) {
+				// 忽略错误，回退到占位内容
+			}
+			this.dailyBird = '';
+			this.recommendImg = BIRD_PLACEHOLDER;
+		},
+		normalizeImageUrl(url) {
+			if (!url) return BIRD_PLACEHOLDER;
+			if (url.startsWith('http')) return url;
+			return getBaseUrl() + (url.startsWith('/') ? url : '/' + url);
 		},
 		formatName(name) {
 			if(!name) return "";
@@ -928,4 +949,3 @@ export default {
 .recognize-icon { font-size: 40rpx; margin-bottom: 6rpx; }
 .recognize-text { font-size: 28rpx; font-weight: 700; }
 </style>
-
