@@ -4,12 +4,34 @@
 		<view class="header">
 			<text class="title">鸟类对比</text>
 		</view>
-		<picker mode="selector" :range="birdNames" @change="onPick1">
-			<view class="picker">选择鸟类1：{{ bird1 || '未选择' }}</view>
-		</picker>
-		<picker mode="selector" :range="birdNames" @change="onPick2">
-			<view class="picker">选择鸟类2：{{ bird2 || '未选择' }}</view>
-		</picker>
+		<view class="search-select">
+			<input
+				v-model="query1"
+				class="search-input"
+				placeholder="搜索并选择鸟类1"
+				@focus="showOptions1 = true"
+				@input="onQueryInput(1)"
+			/>
+			<scroll-view v-if="showOptions1 && filteredBirds1.length" scroll-y class="options-list">
+				<view class="option-item" v-for="name in filteredBirds1" :key="`b1-${name}`" @click="selectBird(1, name)">
+					{{ name }}
+				</view>
+			</scroll-view>
+		</view>
+		<view class="search-select">
+			<input
+				v-model="query2"
+				class="search-input"
+				placeholder="搜索并选择鸟类2"
+				@focus="showOptions2 = true"
+				@input="onQueryInput(2)"
+			/>
+			<scroll-view v-if="showOptions2 && filteredBirds2.length" scroll-y class="options-list">
+				<view class="option-item" v-for="name in filteredBirds2" :key="`b2-${name}`" @click="selectBird(2, name)">
+					{{ name }}
+				</view>
+			</scroll-view>
+		</view>
 		<view v-if="bird1 && bird2" class="compare-result">
 			<view class="compare-row">
 				<view class="compare-col">
@@ -56,7 +78,11 @@ export default {
 			birdNames: [],
 			bird1: '',
 			bird2: '',
-			birds: []
+			birds: [],
+			query1: '',
+			query2: '',
+			showOptions1: false,
+			showOptions2: false
 		};
 	},
 	onLoad() {
@@ -76,8 +102,24 @@ export default {
 				this.birdNames = [];
 			}
 		},
-		onPick1(e) { this.bird1 = this.birdNames[e.detail.value]; },
-		onPick2(e) { this.bird2 = this.birdNames[e.detail.value]; },
+		onQueryInput(type) {
+			if (type === 1) {
+				this.showOptions1 = true;
+				return;
+			}
+			this.showOptions2 = true;
+		},
+		selectBird(type, name) {
+			if (type === 1) {
+				this.bird1 = name;
+				this.query1 = name;
+				this.showOptions1 = false;
+				return;
+			}
+			this.bird2 = name;
+			this.query2 = name;
+			this.showOptions2 = false;
+		},
 		getInfo(name, key) {
 			const b = this.birds.find(b => b.name === name);
 			if (!b) return '暂无数据';
@@ -99,6 +141,18 @@ export default {
 				current: url
 			});
 		}
+	},
+	computed: {
+		filteredBirds1() {
+			const q = (this.query1 || '').trim().toLowerCase();
+			if (!q) return this.birdNames.slice(0, 20);
+			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
+		},
+		filteredBirds2() {
+			const q = (this.query2 || '').trim().toLowerCase();
+			if (!q) return this.birdNames.slice(0, 20);
+			return this.birdNames.filter(name => name.toLowerCase().includes(q)).slice(0, 20);
+		}
 	}
 };
 </script>
@@ -108,7 +162,17 @@ export default {
 .compare-page { padding: 32rpx; }
 .header { text-align: center; margin-bottom: 24rpx; }
 .title { font-size: 40rpx; font-weight: bold; color: #2d3436; }
-.picker { background: #f5f5f5; border-radius: 8rpx; padding: 16rpx; margin-bottom: 18rpx; color: #333; }
+.search-select { margin-bottom: 18rpx; position: relative; }
+.search-input { background: #f5f5f5; border-radius: 8rpx; padding: 16rpx; color: #333; font-size: 28rpx; }
+.options-list {
+	max-height: 260rpx;
+	background: #fff;
+	border: 1rpx solid #e8e8e8;
+	border-radius: 8rpx;
+	margin-top: 8rpx;
+}
+.option-item { padding: 14rpx 16rpx; border-bottom: 1rpx solid #f1f1f1; color: #333; font-size: 26rpx; }
+.option-item:last-child { border-bottom: none; }
 .compare-result { margin-top: 24rpx; }
 .compare-row { display: flex; gap: 18rpx; margin-bottom: 18rpx; }
 .compare-col { flex: 1; background: #fff; border-radius: 12rpx; padding: 18rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03); }

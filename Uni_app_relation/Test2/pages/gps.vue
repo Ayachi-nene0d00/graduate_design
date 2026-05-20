@@ -26,7 +26,13 @@
                         <swiper class="bird-swiper" :indicator-dots="true" :autoplay="true" :interval="carouselInterval" :circular="true">
                                 <swiper-item v-for="(bird, index) in birds" :key="index">
                                         <view class="bird-card">
-						<image :src="bird.image_url" class="bird-img" mode="aspectFill" @error="onImgError(index)" />
+						<image
+							:src="bird.image_url"
+							class="bird-img"
+							mode="aspectFill"
+							@error="onImgError(index)"
+							@click="previewImg(bird.image_url)"
+						/>
 						<view class="bird-info">
 							<text class="bird-name">{{ bird.name }} <text class="bird-en-name" v-if="bird.english_name">({{ bird.english_name }})</text></text>
 							<text class="bird-family">所属科属：{{ bird.family || '未知' }} | 保护级别：<text class="level-tag">{{ bird.protect_level || '无' }}</text></text>
@@ -168,6 +174,13 @@ export default {
 			if (this.birds[index]) {
 				this.$set(this.birds[index], 'image_url', BIRD_PLACEHOLDER);
 			}
+		},
+		previewImg(url) {
+			if (!url) return;
+			uni.previewImage({
+				urls: [url],
+				current: url
+			});
 		}
 	}
 };
