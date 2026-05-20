@@ -87,7 +87,10 @@ export async function localizeBirdName(name, requestApiFn) {
 	}
 
 	const nameMap = readNameMap();
-	if (nameMap[raw]) return nameMap[raw];
+	if (nameMap[raw]) {
+		const cached = formatBirdDisplayName(nameMap[raw]);
+		if (containsChinese(cached)) return cached;
+	}
 
 	const keywords = buildCandidateKeywords(raw);
 	for (const keyword of keywords) {
