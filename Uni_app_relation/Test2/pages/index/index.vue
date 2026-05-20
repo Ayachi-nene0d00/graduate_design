@@ -109,6 +109,7 @@
 <script>
 // 脚本部分：主页逻辑，包括图片选择、ONNX推理、结果处理、导航跳转等
 import { uploadApi, requestApi, getBaseUrl } from '@/common/api';
+import { formatBirdDisplayName, localizeBirdName } from '@/common/bird_name_localizer';
 const BIRD_PLACEHOLDER = 'https://img.haoma.com/bird_placeholder.jpg';
 const DEFAULT_PROVINCE = '四川';
 export default {
@@ -535,8 +536,18 @@ export default {
     this.loadSearchHistory();
   },
 	methods: {
-    loadHistory() {
-      this.historyList = uni.getStorageSync('bird_history') || [];
+    async loadHistory() {
+      const originHistory = uni.getStorageSync('bird_history') || [];
+      let changed = false;
+      this.historyList = await Promise.all(originHistory.map(async (item) => {
+        const localizedName = await localizeBirdName(item.name, requestApi);
+        if (localizedName === item.name) return item;
+        changed = true;
+        return { ...item, name: localizedName };
+      }));
+      if (changed) {
+        uni.setStorageSync('bird_history', this.historyList);
+      }
       this.latestHistoryName = this.historyList.length ? this.historyList[0].name : '';
     },
     loadSearchHistory() {
@@ -615,8 +626,7 @@ export default {
       this.recommendImg = BIRD_PLACEHOLDER;
     },
 		formatName(name) {
-			if(!name) return "";
-			return name.includes('.') ? name.split('.')[1].replace(/_/g, ' ') : name;
+			return formatBirdDisplayName(name);
 		},
 		// 直接跳转鸟网首页
 		goBirdNet() {
@@ -672,7 +682,8 @@ export default {
 					try {
 						let resData = JSON.parse(uploadFileRes.data);
 						if (resData.code === 0) {
-							this.result = { name: resData.bird_name, conf: resData.confidence };
+							const localizedName = await localizeBirdName(resData.bird_name, requestApi);
+							this.result = { name: localizedName, conf: resData.confidence };
 
 							uni.vibrateShort();
 							await this.saveToHistory(this.result.name, this.result.conf, this.imgUrl);
