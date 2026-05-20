@@ -53,7 +53,8 @@
 </template>
 
 <script>
-import { requestApi } from '@/common/api';
+import { requestApi, getBaseUrl } from '@/common/api';
+const BIRD_PLACEHOLDER = 'https://img.haoma.com/bird_placeholder.jpg';
 export default {
 		data() {
 		return {
@@ -136,7 +137,10 @@ export default {
 				});
 				const response = res.data ? res : (res[1] || {});
 				if (response.statusCode === 200 && response.data.code === 0) {
-					this.birds = response.data.data;
+					this.birds = (response.data.data || []).map((bird) => {
+						const normalizedImageUrl = this.normalizeImageUrl(bird.image_url);
+						return { ...bird, image_url: normalizedImageUrl };
+					});
 				} else {
 					uni.showToast({ title: '获取推荐数据失败', icon: 'none' });
 				}
@@ -151,9 +155,16 @@ export default {
 			if (!text) return '暂无数据';
 			return text.length > length ? text.substring(0, length) + '...' : text;
 		},
+		normalizeImageUrl(url) {
+			if (!url) return BIRD_PLACEHOLDER;
+			if (url.startsWith('http')) return url;
+			return getBaseUrl() + (url.startsWith('/') ? url : '/' + url);
+		},
 		onImgError(index) {
 			// 如果图片加载失败，替换为一个占位图
-			this.birds[index].image_url = 'https://img.haoma.com/bird_placeholder.jpg';
+			if (this.birds[index]) {
+				this.$set(this.birds[index], 'image_url', BIRD_PLACEHOLDER);
+			}
 		}
 	}
 };
