@@ -53,6 +53,12 @@
 // 脚本部分：处理Quiz问题选择、显示答案、下一题、完成逻辑和历史记录
 import { requestApi } from '@/common/api';
 import { localizeBirdName } from '@/common/bird_name_localizer';
+const QUESTION_TYPE_MARKERS = {
+	FAMILY: '属于哪个科属',
+	PROTECT_LEVEL: '保护级别',
+	FEATURE: '外形特征为',
+	REGION: '分布在'
+};
 export default {
 	data() {
 		return {
@@ -73,26 +79,25 @@ export default {
 	},
 	methods: {
 		async localizeBirdNameInQuestion(questionText) {
-			if (!questionText || (questionText.indexOf('属于哪个科属') === -1 && questionText.indexOf('保护级别') === -1)) {
+			if (!questionText || (questionText.indexOf(QUESTION_TYPE_MARKERS.FAMILY) === -1 && questionText.indexOf(QUESTION_TYPE_MARKERS.PROTECT_LEVEL) === -1)) {
 				return questionText;
 			}
 			const match = questionText.match(/“([^”]+)”/);
 			if (!match || !match[1]) return questionText;
 			const localized = await localizeBirdName(match[1], requestApi);
-			return questionText.replace(`“${match[1]}”`, `“${localized}”`);
+			const escaped = match[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return questionText.replace(new RegExp(`“${escaped}”`, 'g'), `“${localized}”`);
 		},
 		shouldLocalizeOptions(questionText) {
 			if (!questionText) return false;
-			return questionText.indexOf('外形特征为') !== -1 || questionText.indexOf('分布在') !== -1;
+			return questionText.indexOf(QUESTION_TYPE_MARKERS.FEATURE) !== -1 || questionText.indexOf(QUESTION_TYPE_MARKERS.REGION) !== -1;
 		},
 		async localizeQuizItem(item) {
-			const localizedQuestion = await this.localizeBirdNameInQuestion(item.q);
-			let localizedOptions = item.opts;
-			if (this.shouldLocalizeOptions(item.q)) {
-				localizedOptions = await Promise.all(
-					item.opts.map((opt) => localizeBirdName(opt, requestApi))
-				);
-			}
+			const localizedQuestionPromise = this.localizeBirdNameInQuestion(item.q);
+			const localizedOptionsPromise = this.shouldLocalizeOptions(item.q)
+				? Promise.all(item.opts.map((opt) => localizeBirdName(opt, requestApi)))
+				: Promise.resolve(item.opts);
+			const [localizedQuestion, localizedOptions] = await Promise.all([localizedQuestionPromise, localizedOptionsPromise]);
 			return {
 				...item,
 				q: localizedQuestion,
