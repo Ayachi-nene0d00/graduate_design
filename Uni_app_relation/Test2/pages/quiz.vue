@@ -52,6 +52,7 @@
 <script>
 // 脚本部分：处理Quiz问题选择、显示答案、下一题、完成逻辑和历史记录
 import { requestApi } from '@/common/api';
+import { localizeBirdName } from '@/common/bird_name_localizer';
 export default {
 	data() {
 		return {
@@ -71,6 +72,33 @@ export default {
 		this.loadQuiz();
 	},
 	methods: {
+		async localizeBirdNameInQuestion(questionText) {
+			if (!questionText || (questionText.indexOf('属于哪个科属') === -1 && questionText.indexOf('保护级别') === -1)) {
+				return questionText;
+			}
+			const match = questionText.match(/“([^”]+)”/);
+			if (!match || !match[1]) return questionText;
+			const localized = await localizeBirdName(match[1], requestApi);
+			return questionText.replace(`“${match[1]}”`, `“${localized}”`);
+		},
+		shouldLocalizeOptions(questionText) {
+			if (!questionText) return false;
+			return questionText.indexOf('外形特征为') !== -1 || questionText.indexOf('分布在') !== -1;
+		},
+		async localizeQuizItem(item) {
+			const localizedQuestion = await this.localizeBirdNameInQuestion(item.q);
+			let localizedOptions = item.opts;
+			if (this.shouldLocalizeOptions(item.q)) {
+				localizedOptions = await Promise.all(
+					item.opts.map((opt) => localizeBirdName(opt, requestApi))
+				);
+			}
+			return {
+				...item,
+				q: localizedQuestion,
+				opts: localizedOptions
+			};
+		},
 		async loadQuiz() {
 			// 骨架屏提示或Loading效果
 			uni.showLoading({ title: '加载题库中...', mask: true });
@@ -100,7 +128,7 @@ export default {
 						let mockData = dbMockQuestions.sort(() => 0.5 - Math.random());
 						apiQuestions = apiQuestions.concat(mockData).slice(0, 5);
 					}
-					this.questions = apiQuestions;
+					this.questions = await Promise.all(apiQuestions.map((item) => this.localizeQuizItem(item)));
 				} else {
 					this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
 				}
