@@ -113,7 +113,7 @@ export default {
 			loading: false,
 			dailyBird: '',
 			result: null,
-      recommendImg: 'https://img.haoma.com/bird_placeholder.jpg',
+      recommendImg: BIRD_PLACEHOLDER,
       historyList: [],
       localSearchHistory: [],
       showAllSearchHistory: false,
@@ -593,7 +593,7 @@ export default {
 					}
 				}
 			} catch (e) {
-				// 忽略错误，回退到占位内容
+				console.warn('Get GPS recommendation failed:', e);
 			}
 			this.dailyBird = '';
 			this.recommendImg = BIRD_PLACEHOLDER;
