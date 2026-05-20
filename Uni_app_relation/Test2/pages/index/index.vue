@@ -577,7 +577,7 @@ export default {
     },
 		async getGPSRecommend() {
 			try {
-				const city = '四川';
+				const city = uni.getStorageSync('gps_city') || '四川';
 				const res = await requestApi({
 					path: `/api/recommend?city=${encodeURIComponent(city)}`,
 					method: 'GET',
@@ -585,10 +585,10 @@ export default {
 				});
 				const response = res.data ? res : (res[1] || {});
 				if (response.statusCode === 200 && response.data && response.data.code === 0) {
-					const birds = (response.data.data || []).slice(0, 5);
-					if (birds.length > 0) {
-						this.dailyBird = birds[0].name || '';
-						this.recommendImg = this.normalizeImageUrl(birds[0].image_url);
+					const firstBird = (response.data.data || [])[0];
+					if (firstBird) {
+						this.dailyBird = firstBird.name || '';
+						this.recommendImg = this.normalizeImageUrl(firstBird.image_url);
 						return;
 					}
 				}

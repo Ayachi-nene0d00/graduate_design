@@ -66,6 +66,7 @@ export default {
 	},
 	onLoad() {
 		// 页面加载时自动请求一次推荐
+		uni.setStorageSync('gps_city', this.currentCity);
 		this.fetchRecommendations(this.currentCity);
 
 		// 尝试从本地存储读取用户自定义的轮播间隔时间 (如果有)
@@ -129,6 +130,7 @@ export default {
 		},
 		async fetchRecommendations(city) {
 			this.loading = true;
+			uni.setStorageSync('gps_city', city);
 			try {
 				const res = await requestApi({
 					path: `/api/recommend?city=${encodeURIComponent(city)}`,
