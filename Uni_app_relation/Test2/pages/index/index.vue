@@ -52,7 +52,9 @@
     </view>
 
     <view class="recommend-card" @click="goToGPS">
-      <image class="recommend-img" :src="recommendImg" mode="aspectFill" />
+      <view class="recommend-img-wrap">
+        <image class="recommend-img" :src="recommendImg" mode="aspectFit" @error="handleRecommendImageError" />
+      </view>
       <view class="recommend-overlay">
         <text class="recommend-name">{{ formatName(dailyBird) || '今日推荐' }}</text>
         <text class="recommend-sub">今日推荐</text>
@@ -74,7 +76,9 @@
         :key="index"
         @click="openHistoryItem(item)"
       >
-        <image class="recent-img" :src="item.img" mode="aspectFill" />
+        <view class="recent-img-wrap">
+          <image class="recent-img" :src="item.img" mode="aspectFit" />
+        </view>
         <view class="recent-info">
           <text class="recent-name">{{ formatName(item.name) }}</text>
           <text class="recent-conf">匹配度 {{ (item.conf * 100).toFixed(1) }}%</text>
@@ -607,6 +611,9 @@ export default {
 			const baseUrl = getBaseUrl().replace(/\/$/, '');
 			return baseUrl + (url.startsWith('/') ? url : '/' + url);
 		},
+    handleRecommendImageError() {
+      this.recommendImg = BIRD_PLACEHOLDER;
+    },
 		formatName(name) {
 			if(!name) return "";
 			return name.includes('.') ? name.split('.')[1].replace(/_/g, ' ') : name;
@@ -871,6 +878,13 @@ export default {
   margin-bottom: 26rpx;
   box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.08);
 }
+.recommend-img-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .recommend-img { width: 100%; height: 100%; }
 .recommend-overlay {
   position: absolute;
@@ -899,7 +913,17 @@ export default {
   gap: 12rpx;
 }
 .recent-item { display: flex; gap: 16rpx; align-items: center; }
-.recent-img { width: 120rpx; height: 120rpx; border-radius: 16rpx; background: #f0f0f0; }
+.recent-img-wrap {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  background: #f0f0f0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recent-img { width: 100%; height: 100%; }
 .recent-info { display: flex; flex-direction: column; }
 .recent-name { font-size: 28rpx; color: #222; font-weight: 600; }
 .recent-conf { font-size: 22rpx; color: #8c8c8c; margin-top: 6rpx; }
