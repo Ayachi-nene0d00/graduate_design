@@ -1,8 +1,8 @@
 【一】后端本地图片给前端显示（已落地方案）
 
 1) 后端放图
-- 将图片统一放到：F:\Python-program\111\static\...
-- 示例：F:\Python-program\111\static\birds\egret.jpg
+- 将图片统一放到：F:/Python-program/111/static/...
+- 示例：F:/Python-program/111/static/birds/egret.jpg
 
 2) 后端静态目录映射
 - backend/main.py 已挂载：/static -> F:\Python-program\111\static
@@ -15,7 +15,7 @@
 4) 后端兼容性处理（本次实现）
 - 新增 image_url 归一化逻辑：
   - http/https/data:image 直通
-  - Windows 路径中的 \ 统一为 /
+  - Windows 路径中的 \ 统一为 /（避免把本地路径直接当作 HTTP URL 导致前端无法加载）
   - 若包含 /static/ 段，自动截取为 /static/... 返回
   - 空值或无效本地盘符路径，回退占位图
 - 已应用到：

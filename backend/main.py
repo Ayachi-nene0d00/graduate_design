@@ -60,6 +60,7 @@ DB_CONFIG = {
 }
 
 DEFAULT_BIRD_PLACEHOLDER = "https://img.haoma.com/bird_placeholder.jpg"
+WINDOWS_PATH_PATTERN = re.compile(r"^[a-zA-Z]:/")
 
 def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
@@ -72,7 +73,7 @@ def normalize_image_url(image_url):
     if not raw:
         return DEFAULT_BIRD_PLACEHOLDER
 
-    if raw.startswith(("http://", "https://", "data:image/")):
+    if raw.startswith(("http://", "https://", "data:image")):
         return raw
 
     normalized = raw.replace("\\", "/")
@@ -86,7 +87,7 @@ def normalize_image_url(image_url):
     if normalized.startswith("/"):
         return normalized
 
-    if re.match(r"^[a-zA-Z]:/", normalized):
+    if WINDOWS_PATH_PATTERN.match(normalized):
         return DEFAULT_BIRD_PLACEHOLDER
 
     return f"/{normalized}"
