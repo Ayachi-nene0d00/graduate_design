@@ -29,6 +29,8 @@ app.add_middleware(
 )
 
 BASE_DIR = r"F:\Python-program\111"
+STATIC_MOUNT_PATH = "/static"
+STATIC_DIR = r"F:\Python-program\111\static"
 model = None
 latest_model_path = None
 
@@ -66,7 +68,17 @@ def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
 
 def normalize_image_url(image_url):
-    """Normalize DB image_url to frontend-friendly URL."""
+    """
+    Normalize bird image URL from DB to frontend-consumable URL.
+
+    Rules:
+    - Keep HTTP/HTTPS/data:image URLs unchanged.
+    - Convert Windows backslashes to forward slashes.
+    - If value contains `/static/`, return that web path segment.
+    - Keep leading-slash web-relative paths unchanged.
+    - Convert `static/...` to `/static/...`.
+    - Fallback to placeholder for empty values or local-only absolute paths.
+    """
     if not image_url:
         return DEFAULT_BIRD_PLACEHOLDER
     raw = str(image_url).strip()
@@ -78,7 +90,8 @@ def normalize_image_url(image_url):
 
     normalized = raw.replace("\\", "/")
     lowered = normalized.lower()
-    static_index = lowered.find("/static/")
+    static_prefix = f"{STATIC_MOUNT_PATH}/"
+    static_index = lowered.find(static_prefix)
     if static_index != -1:
         return normalized[static_index:]
 
@@ -87,7 +100,7 @@ def normalize_image_url(image_url):
     if normalized.startswith("/"):
         return normalized
 
-    if WINDOWS_PATH_PATTERN.match(normalized):
+    if WINDOWS_PATH_PATTERN.match(normalized) or normalized.startswith("//"):
         return DEFAULT_BIRD_PLACEHOLDER
 
     return f"/{normalized}"
@@ -238,7 +251,7 @@ async def get_bird_detail(bird_id: int):
 # 挂载静态文件目录
 # 任何访问 /static/... 的请求，都会被映射到 'F:/Python-program/111/static' 文件夹
 # 例如: http://localhost:8000/static/bird.jpg 会返回 static/bird.jpg 文件
-app.mount("/static", StaticFiles(directory=r"F:\Python-program\111\static"), name="static")
+app.mount(STATIC_MOUNT_PATH, StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def root_page():
