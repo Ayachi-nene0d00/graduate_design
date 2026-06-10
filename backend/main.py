@@ -2,6 +2,7 @@ import base64
 import glob
 import io
 import json
+import logging
 import os
 import re
 import socket
@@ -18,6 +19,7 @@ from PIL import Image
 import pymysql
 
 app = FastAPI(title="Bird Classifier Intranet API")
+logger = logging.getLogger(__name__)
 
 # 允许跨域请求，防止由于前端限制导致请求被拦截
 app.add_middleware(
@@ -93,7 +95,8 @@ def normalize_image_url(image_url):
     static_prefix = f"{STATIC_MOUNT_PATH}/"
     static_index = lowered.find(static_prefix)
     if static_index != -1:
-        return normalized[static_index:]
+        suffix = normalized[static_index + len(static_prefix):]
+        return f"{static_prefix}{suffix}"
 
     if normalized.startswith("static/"):
         return f"/{normalized}"
@@ -101,9 +104,14 @@ def normalize_image_url(image_url):
         return normalized
 
     if WINDOWS_PATH_PATTERN.match(normalized) or normalized.startswith("//"):
+        logger.warning("Invalid local absolute image_url in DB, fallback placeholder: %s", raw)
         return DEFAULT_BIRD_PLACEHOLDER
 
-    return f"/{normalized}"
+    if "/" in normalized or "." in os.path.basename(normalized):
+        return f"/{normalized}"
+
+    logger.warning("Unexpected image_url format in DB, fallback placeholder: %s", raw)
+    return DEFAULT_BIRD_PLACEHOLDER
 
 @app.get("/api/quiz")
 async def get_quiz():
