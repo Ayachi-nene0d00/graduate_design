@@ -98,7 +98,8 @@ def normalize_image_url(image_url):
         suffix = normalized[static_index + len(static_prefix):]
         return f"{static_prefix}{suffix}"
 
-    if normalized.startswith("static/"):
+    static_relative_prefix = f"{STATIC_MOUNT_PATH.lstrip('/')}/"
+    if normalized.startswith(static_relative_prefix):
         return f"/{normalized}"
     if normalized.startswith("/"):
         return normalized
