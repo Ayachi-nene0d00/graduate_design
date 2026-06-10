@@ -59,8 +59,37 @@ DB_CONFIG = {
     "cursorclass": pymysql.cursors.DictCursor
 }
 
+DEFAULT_BIRD_PLACEHOLDER = "https://img.haoma.com/bird_placeholder.jpg"
+
 def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
+
+def normalize_image_url(image_url):
+    """Normalize DB image_url to frontend-friendly URL."""
+    if not image_url:
+        return DEFAULT_BIRD_PLACEHOLDER
+    raw = str(image_url).strip()
+    if not raw:
+        return DEFAULT_BIRD_PLACEHOLDER
+
+    if raw.startswith(("http://", "https://", "data:image/")):
+        return raw
+
+    normalized = raw.replace("\\", "/")
+    lowered = normalized.lower()
+    static_index = lowered.find("/static/")
+    if static_index != -1:
+        return normalized[static_index:]
+
+    if normalized.startswith("static/"):
+        return f"/{normalized}"
+    if normalized.startswith("/"):
+        return normalized
+
+    if re.match(r"^[a-zA-Z]:/", normalized):
+        return DEFAULT_BIRD_PLACEHOLDER
+
+    return f"/{normalized}"
 
 @app.get("/api/quiz")
 async def get_quiz():
@@ -141,8 +170,7 @@ async def get_recommendations(lat: float = None, lon: float = None, city: str = 
         # 处理图片链接为空的情况
         final_birds = []
         for b in unique_birds:
-            if not b.get('image_url'):
-                b['image_url'] = 'https://img.haoma.com/bird_placeholder.jpg'
+            b["image_url"] = normalize_image_url(b.get("image_url"))
             final_birds.append(b)
             
         return {
@@ -180,6 +208,8 @@ async def get_bird_list(
             cursor.execute(sql, params)
             birds = cursor.fetchall()
         connection.close()
+        for bird in birds:
+            bird["image_url"] = normalize_image_url(bird.get("image_url"))
         return {"code": 0, "data": birds, "message": "查询成功"}
     except Exception as e:
         return {"code": -1, "message": f"查询失败: {str(e)}"}
@@ -197,6 +227,7 @@ async def get_bird_detail(bird_id: int):
             bird = cursor.fetchone()
         connection.close()
         if bird:
+            bird["image_url"] = normalize_image_url(bird.get("image_url"))
             return {"code": 0, "data": bird, "message": "查询成功"}
         else:
             return {"code": 1, "message": "未找到该鸟类"}
