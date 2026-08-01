@@ -7,12 +7,7 @@
 				<view class="result-header">
 					<text class="bird-name">{{ birdName }}</text>
 					<view class="conf-tag">匹配度 {{ (confidence * 100).toFixed(1) }}%</view>
-				</view>
-				<view class="divider"></view>
-				<view class="footer-info">
-					<text class="info-item">识别来源：AI 离线引擎</text>
-					<text class="info-item">技术支持：西安建筑科技大学 · 王全宝</text>
-				</view>
+            </view>
 			</view>
 		</view>
 

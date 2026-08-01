@@ -36,7 +36,7 @@ def load_latest_model():
     """Load the newest best.pt if available."""
     model_paths = glob.glob(os.path.join(BASE_DIR, "runs", "**", "best.pt"), recursive=True)
     if not model_paths:
-        print("警告：未找到 best.pt 模型文件，请检查是否已完成训练。")
+        print("警告：未找到 best.pt 模型文件。")
         return None, None
     newest_path = max(model_paths, key=os.path.getmtime)
     print(f"=== 加载最新模型 ===\n{newest_path}")
@@ -252,7 +252,7 @@ async def predict(file: UploadFile = File(...)):
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-        # 使用 YOLO 进行预测（设定大小为你训练时的224）
+        # 使用 YOLO 进行预测（大小为224）
         results = model(image, imgsz=224)
         result = results[0]
 
@@ -298,7 +298,7 @@ def make_qr_base64(url: str):
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode("ascii")
 
-def load_api_key():
+#def load_api_key():
     env_key = os.getenv("SILICONFLOW_API_KEY") or os.getenv("DEEPSEEK_API_KEY")
     if env_key:
         return env_key.strip()
@@ -310,22 +310,40 @@ def load_api_key():
     match = re.search(r"sk-[A-Za-z0-9]+", content)
     return match.group(0) if match else None
 
+
 def call_ai_api(question: str):
-    api_key = load_api_key()
-    if not api_key:
-        return None, "API key not found"
+    # ====================== 直接写死所有API配置 ======================
+    # 你的硅基流动API密钥（直接写在这里，不需要任何其他文件）
+    api_key = "sk-xeycdvjupmncewgkjcjksfucwpyxtezhdeoesvoknlqhluot"
+
+    # 硅基流动API端点（固定不变）
+    api_url = "https://api.siliconflow.cn/v1/chat/completions"
+
+    # 要使用的模型（GLM-4-9B是免费的，速度快）
+    model_name = "THUDM/GLM-4-9B-0414"
+
+    # 系统提示词（可以根据需要修改）
+    system_prompt = "你是一位专业的鸟类学专家，拥有丰富的鸟类知识。请用简洁、准确、通俗易懂的语言回答用户关于鸟类的问题，回答要分点清晰，重点突出。如果用户的问题与鸟类无关，请礼貌地说明你只能回答鸟类相关的问题。"
+    # ================================================================
+
+    # 构造请求体
     payload = {
-        "model": "THUDM/GLM-4-9B-0414",
+        "model": model_name,
         "messages": [
-            {"role": "system", "content": "You are a helpful bird expert. Provide concise, accurate answers."},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": question}
         ],
         "max_tokens": 1024,
-        "temperature": 0.7
+        "temperature": 0.7,
+        "stream": False
     }
+
+    # 转换为JSON并编码
     data = json.dumps(payload).encode("utf-8")
+
+    # 构造请求
     request = urllib.request.Request(
-        url="https://api.siliconflow.cn/v1/chat/completions",
+        url=api_url,
         data=data,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -333,16 +351,40 @@ def call_ai_api(question: str):
         },
         method="POST"
     )
+
     try:
+        # 发送请求，超时120秒
         with urllib.request.urlopen(request, timeout=120) as response:
             body = response.read().decode("utf-8")
             parsed = json.loads(body)
+
+            # 提取AI回答
             answer = parsed.get("choices", [{}])[0].get("message", {}).get("content", "")
-            return answer.strip(), None
+            if answer:
+                return answer.strip(), None
+            else:
+                return "AI没有返回有效回答，请稍后再试。", None
+
     except urllib.error.HTTPError as exc:
-        return None, f"HTTP {exc.code}"
+        # 处理HTTP错误（如401密钥错误、404模型不存在、429限流等）
+        error_body = exc.read().decode("utf-8")
+        print(f"API调用HTTP错误：{exc.code}")
+        print(f"错误详情：{error_body}")
+
+        # 根据错误码返回友好提示
+        if exc.code == 401:
+            return "API密钥无效，请检查密钥是否正确。", f"HTTP {exc.code}"
+        elif exc.code == 404:
+            return "模型不存在，请检查模型名称是否正确。", f"HTTP {exc.code}"
+        elif exc.code == 429:
+            return "请求过于频繁，请稍后再试。", f"HTTP {exc.code}"
+        else:
+            return f"API调用失败，错误码：{exc.code}", f"HTTP {exc.code}"
+
     except Exception as exc:
-        return None, str(exc)
+        # 处理其他错误（如网络连接失败、超时等）
+        print(f"API调用其他错误：{str(exc)}")
+        return "网络连接失败，请检查你的网络是否正常。", str(exc)
 
 @app.get("/api/meta")
 async def get_meta():
