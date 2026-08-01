@@ -6,8 +6,8 @@
 - FastAPI 本地后端服务（局域网可访问）
 - UniApp 前端相关工程与集成资源
   
-# 项目视频演示
-[毕业设计视频演示.webm](https://github.com/user-attachments/assets/543f125b-4a34-40e0-99b7-767b87bed0b0)
+# 系统功能模块图
+<img width="694" height="426" alt="image" src="https://github.com/user-attachments/assets/e1ae3404-15c0-4b17-bfe5-d3ab3c430dd3" />
 
 # 项目视频演示
 [毕业设计视频演示.webm](https://github.com/user-attachments/assets/c9663e0c-047d-420b-8151-2a5fd1629a83)
