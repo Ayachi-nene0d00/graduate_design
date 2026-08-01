@@ -9,6 +9,9 @@
 # 项目视频演示
 [毕业设计视频演示.webm](https://github.com/user-attachments/assets/543f125b-4a34-40e0-99b7-767b87bed0b0)
 
+# 项目视频演示
+[毕业设计视频演示.webm](https://github.com/user-attachments/assets/c9663e0c-047d-420b-8151-2a5fd1629a83)
+
 ## 项目结构
 
 - `/convert_dataset.py`：将原始 CUB-200_2011 数据集拆分为 `train/val` 分类目录结构  
