@@ -53,6 +53,19 @@ export default {
 	},
 	methods: {
 		async loadBirds() {
+			// 检查是否有quiz_birds
+			const quizBirds = uni.getStorageSync('quiz_birds');
+			if (quizBirds && Array.isArray(quizBirds) && quizBirds.length > 0) {
+				this.birds = quizBirds.map(b => ({
+					bird_id: b.bird_id,
+					name: b.name,
+					img: b.image_url ? (b.image_url.startsWith('http') ? b.image_url : getBaseUrl() + (b.image_url.startsWith('/') ? b.image_url : '/' + b.image_url)) : 'https://img.haoma.com/bird_placeholder.jpg',
+					brief: b.feature || b.habit || '暂无描述'
+				}));
+				// 用完即删，防止下次进入还显示
+				uni.removeStorageSync('quiz_birds');
+				return;
+			}
 			try {
 				let keyword = '';
 				if (this.searchQuery) {

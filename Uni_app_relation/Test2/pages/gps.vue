@@ -26,7 +26,7 @@
                         <swiper class="bird-swiper" :indicator-dots="true" :autoplay="true" :interval="carouselInterval" :circular="true">
                                 <swiper-item v-for="(bird, index) in birds" :key="index">
                                         <view class="bird-card">
-						<image :src="bird.image_url" class="bird-img" mode="aspectFill" @error="onImgError(index)" />
+                        <image :src="bird.image_url" class="bird-img" mode="aspectFill" @click="previewImg(bird.image_url)" @error="onImgError(index)" />
 						<view class="bird-info">
 							<text class="bird-name">{{ bird.name }} <text class="bird-en-name" v-if="bird.english_name">({{ bird.english_name }})</text></text>
 							<text class="bird-family">所属科属：{{ bird.family || '未知' }} | 保护级别：<text class="level-tag">{{ bird.protect_level || '无' }}</text></text>
@@ -53,8 +53,8 @@
 </template>
 
 <script>
+// 新增导入 getBaseUrl，和encyclopedia.vue保持一致
 import { requestApi, getBaseUrl } from '@/common/api';
-const BIRD_PLACEHOLDER = 'https://img.haoma.com/bird_placeholder.jpg';
 export default {
 		data() {
 		return {
@@ -129,7 +129,7 @@ export default {
 		},
 		async fetchRecommendations(city) {
 			this.loading = true;
-			if (uni.getStorageSync('gps_city') !== city) {
+				if (uni.getStorageSync('gps_city') !== city) {
 				uni.setStorageSync('gps_city', city);
 			}
 			try {
@@ -140,10 +140,15 @@ export default {
 				});
 				const response = res.data ? res : (res[1] || {});
 				if (response.statusCode === 200 && response.data.code === 0) {
-					this.birds = (response.data.data || []).map((bird) => {
-						const normalizedImageUrl = this.normalizeImageUrl(bird.image_url);
-						return { ...bird, image_url: normalizedImageUrl };
-					});
+					// 核心修改：按照encyclopedia.vue的逻辑处理图片URL
+					this.birds = response.data.data.map(b => ({
+						...b,
+						image_url: b.image_url
+							? (b.image_url.startsWith('http')
+								? b.image_url
+								: getBaseUrl() + (b.image_url.startsWith('/') ? b.image_url : '/' + b.image_url))
+							: 'https://img.haoma.com/bird_placeholder.jpg'
+					}));
 				} else {
 					uni.showToast({ title: '获取推荐数据失败', icon: 'none' });
 				}
@@ -158,16 +163,16 @@ export default {
 			if (!text) return '暂无数据';
 			return text.length > length ? text.substring(0, length) + '...' : text;
 		},
-		normalizeImageUrl(url) {
-			if (!url) return BIRD_PLACEHOLDER;
-			if (url.startsWith('http')) return url;
-			return getBaseUrl() + (url.startsWith('/') ? url : '/' + url);
-		},
 		onImgError(index) {
-			// 如果图片加载失败，替换为一个占位图
-			if (this.birds[index]) {
-				this.$set(this.birds[index], 'image_url', BIRD_PLACEHOLDER);
-			}
+			// 图片加载失败时兜底，和encyclopedia.vue保持一致
+			this.birds[index].image_url = 'https://img.haoma.com/bird_placeholder.jpg';
+		},
+		previewImg(url) {
+			if (!url) return;
+			uni.previewImage({
+				urls: [url],
+				current: url
+			});
 		}
 	}
 };

@@ -36,7 +36,7 @@ def load_latest_model():
     """Load the newest best.pt if available."""
     model_paths = glob.glob(os.path.join(BASE_DIR, "runs", "**", "best.pt"), recursive=True)
     if not model_paths:
-        print("警告：未找到 best.pt 模型文件，请检查是否已完成训练。")
+        print("警告：未找到 best.pt 模型文件。")
         return None, None
     newest_path = max(model_paths, key=os.path.getmtime)
     print(f"=== 加载最新模型 ===\n{newest_path}")
@@ -64,114 +64,55 @@ def get_db_connection():
 
 @app.get("/api/quiz")
 async def get_quiz():
+    connection = None
     try:
-        # 连接数据库
         connection = get_db_connection()
         with connection.cursor() as cursor:
-            # 动态生成基于 bird 表的题目，这里我们直接查询 5 只鸟的各个字段
-            sql = "SELECT name, family, protect_level, region, habit, feature FROM bird ORDER BY RAND() LIMIT 5"
+            sql = """
+                SELECT quiz_id, question, option_a, option_b, option_c, option_d, correct_answer, bird_id
+                FROM quiz
+                WHERE question IS NOT NULL
+                ORDER BY RAND()
+                LIMIT 5
+            """
             cursor.execute(sql)
-            birds = cursor.fetchall()
-            
-            # 为了生成干扰项，我们再取一批包含名字的用于选项
-            sql_options = "SELECT name FROM bird ORDER BY RAND() LIMIT 20"
-            cursor.execute(sql_options)
-            other_birds = [b['name'] for b in cursor.fetchall()]
-
-        connection.close()
-
-        import random
+            quiz_rows = cursor.fetchall()
 
         questions = []
-        for bird in birds:
-            # 随机挑选一种题型
-            # 0: 根据特征猜鸟名
-            # 1: 问某种鸟的科属
-            # 2: 问某种鸟的保护级别
-            # 3: 问某种鸟的分布区域
-            q_type = random.choice([0, 1, 2, 3])
-
-            if q_type == 0 and bird['feature']:
-                feature = bird['feature'][:30] + "..." if len(bird['feature']) > 30 else bird['feature']
-                question_text = f"外形特征为“{feature}”的鸟类是以下哪种？"
-                correct_ans = bird['name']
-                options = random.sample([b for b in other_birds if b != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 1 and bird['family']:
-                question_text = f"“{bird['name']}”属于哪个科属？"
-                correct_ans = bird['family']
-                # 从所有科属里随便造几个选项（这里简化处理）
-                fake_options = ["鸭科", "鹰科", "雀科", "鸥科", "鹭科", "鸽科"]
-                options = random.sample([f for f in fake_options if f != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 2 and bird['protect_level']:
-                question_text = f"“{bird['name']}”的保护级别是什么？"
-                correct_ans = bird['protect_level']
-                fake_options = ["国家一级保护动物", "国家二级保护动物", "三有保护动物", "无危", "濒危"]
-                options = random.sample([f for f in fake_options if f != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-            elif q_type == 3 and bird['region']:
-                region = bird['region'][:20] + "..." if len(bird['region']) > 20 else bird['region']
-                question_text = f"分布在“{region}”及附近区域的鸟类是："
-                correct_ans = bird['name']
-                options = random.sample([b for b in other_birds if b != correct_ans], 3) + [correct_ans]
-                random.shuffle(options)
-                correct_idx = options.index(correct_ans)
-                questions.append({
-                    "question": question_text,
-                    "option_a": options[0],
-                    "option_b": options[1],
-                    "option_c": options[2],
-                    "option_d": options[3],
-                    "correct_answer": chr(65 + correct_idx)
-                })
-
-        # 为了保证一定要有5题（有字段为空的可能）
-        while len(questions) < 5:
-            # 补足
+        for row in quiz_rows:
+            answer = (row.get("correct_answer") or "").strip().upper()
+            if answer not in {"A", "B", "C", "D"}:
+                continue
             questions.append({
-                "question": "以下哪项是计算机经常识别的鸟类？",
-                "option_a": "猫", "option_b": "狗", "option_c": "麻雀", "option_d": "鱼",
-                "correct_answer": "C"
+                "quiz_id": row.get("quiz_id"),
+                "bird_id": row.get("bird_id"),
+                "question": row.get("question"),
+                "option_a": row.get("option_a") or "",
+                "option_b": row.get("option_b") or "",
+                "option_c": row.get("option_c") or "",
+                "option_d": row.get("option_d") or "",
+                "correct_answer": answer
             })
+
+        if not questions:
+            return {
+                "code": -1,
+                "message": "quiz表暂无可用题目"
+            }
 
         return {
             "code": 0,
-            "data": questions[:5],
-            "message": "动态生成题库成功"
+            "data": questions,
+            "message": "从quiz表获取题库成功"
         }
     except Exception as e:
         return {
             "code": -1,
             "message": f"数据库连接或查询失败: {str(e)}"
         }
+    finally:
+        if connection:
+            connection.close()
 
 @app.get("/api/recommend")
 async def get_recommendations(lat: float = None, lon: float = None, city: str = "四川"):
@@ -311,7 +252,7 @@ async def predict(file: UploadFile = File(...)):
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-        # 使用 YOLO 进行预测（设定大小为你训练时的224）
+        # 使用 YOLO 进行预测（大小为224）
         results = model(image, imgsz=224)
         result = results[0]
 
@@ -357,7 +298,7 @@ def make_qr_base64(url: str):
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode("ascii")
 
-def load_api_key():
+#def load_api_key():
     env_key = os.getenv("SILICONFLOW_API_KEY") or os.getenv("DEEPSEEK_API_KEY")
     if env_key:
         return env_key.strip()
@@ -369,22 +310,40 @@ def load_api_key():
     match = re.search(r"sk-[A-Za-z0-9]+", content)
     return match.group(0) if match else None
 
+
 def call_ai_api(question: str):
-    api_key = load_api_key()
-    if not api_key:
-        return None, "API key not found"
+    # ====================== 直接写死所有API配置 ======================
+    # 你的硅基流动API密钥（直接写在这里，不需要任何其他文件）
+    api_key = "sk-xeycdvjupmncewgkjcjksfucwpyxtezhdeoesvoknlqhluot"
+
+    # 硅基流动API端点（固定不变）
+    api_url = "https://api.siliconflow.cn/v1/chat/completions"
+
+    # 要使用的模型（GLM-4-9B是免费的，速度快）
+    model_name = "THUDM/GLM-4-9B-0414"
+
+    # 系统提示词（可以根据需要修改）
+    system_prompt = "你是一位专业的鸟类学专家，拥有丰富的鸟类知识。请用简洁、准确、通俗易懂的语言回答用户关于鸟类的问题，回答要分点清晰，重点突出。如果用户的问题与鸟类无关，请礼貌地说明你只能回答鸟类相关的问题。"
+    # ================================================================
+
+    # 构造请求体
     payload = {
-        "model": "THUDM/GLM-4-9B-0414",
+        "model": model_name,
         "messages": [
-            {"role": "system", "content": "You are a helpful bird expert. Provide concise, accurate answers."},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": question}
         ],
         "max_tokens": 1024,
-        "temperature": 0.7
+        "temperature": 0.7,
+        "stream": False
     }
+
+    # 转换为JSON并编码
     data = json.dumps(payload).encode("utf-8")
+
+    # 构造请求
     request = urllib.request.Request(
-        url="https://api.siliconflow.cn/v1/chat/completions",
+        url=api_url,
         data=data,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -392,16 +351,40 @@ def call_ai_api(question: str):
         },
         method="POST"
     )
+
     try:
+        # 发送请求，超时120秒
         with urllib.request.urlopen(request, timeout=120) as response:
             body = response.read().decode("utf-8")
             parsed = json.loads(body)
+
+            # 提取AI回答
             answer = parsed.get("choices", [{}])[0].get("message", {}).get("content", "")
-            return answer.strip(), None
+            if answer:
+                return answer.strip(), None
+            else:
+                return "AI没有返回有效回答，请稍后再试。", None
+
     except urllib.error.HTTPError as exc:
-        return None, f"HTTP {exc.code}"
+        # 处理HTTP错误（如401密钥错误、404模型不存在、429限流等）
+        error_body = exc.read().decode("utf-8")
+        print(f"API调用HTTP错误：{exc.code}")
+        print(f"错误详情：{error_body}")
+
+        # 根据错误码返回友好提示
+        if exc.code == 401:
+            return "API密钥无效，请检查密钥是否正确。", f"HTTP {exc.code}"
+        elif exc.code == 404:
+            return "模型不存在，请检查模型名称是否正确。", f"HTTP {exc.code}"
+        elif exc.code == 429:
+            return "请求过于频繁，请稍后再试。", f"HTTP {exc.code}"
+        else:
+            return f"API调用失败，错误码：{exc.code}", f"HTTP {exc.code}"
+
     except Exception as exc:
-        return None, str(exc)
+        # 处理其他错误（如网络连接失败、超时等）
+        print(f"API调用其他错误：{str(exc)}")
+        return "网络连接失败，请检查你的网络是否正常。", str(exc)
 
 @app.get("/api/meta")
 async def get_meta():

@@ -40,6 +40,9 @@
 
 <script>
 // 脚本部分：加载、删除、清空历史记录，并处理跳转到分享页查看详情
+import { requestApi } from '@/common/api';
+import { formatBirdDisplayName, localizeBirdName } from '@/common/bird_name_localizer';
+
 export default {
 	data() {
 		return {
@@ -50,12 +53,21 @@ export default {
 		this.loadHistory();
 	},
 	methods: {
-		loadHistory() {
-			this.historyList = uni.getStorageSync('bird_history') || [];
+		async loadHistory() {
+			const originHistory = uni.getStorageSync('bird_history') || [];
+			let changed = false;
+			this.historyList = await Promise.all(originHistory.map(async (item) => {
+				const localizedName = await localizeBirdName(item.name, requestApi);
+				if (localizedName === item.name) return item;
+				changed = true;
+				return { ...item, name: localizedName };
+			}));
+			if (changed) {
+				uni.setStorageSync('bird_history', this.historyList);
+			}
 		},
 		formatName(name) {
-			if(!name) return '未知鸟类';
-			return name.includes('.') ? name.split('.')[1].replace(/_/g, ' ') : name;
+			return formatBirdDisplayName(name);
 		},
 		getConfColor(conf) {
 			if(conf >= 0.9) return '#00b894';

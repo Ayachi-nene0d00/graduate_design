@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # ---------------------- 最终训练参数（剔除无用参数，匹配分类任务） ----------------------
     train_params = {
         "data": "datasets/birds",  # 直接使用拆分后的数据集
-        "epochs": 40,
+        "epochs": 100,
         "imgsz": 224,  # 保持224保证精度
         "batch": current_batch,
         "lr0": 0.001,

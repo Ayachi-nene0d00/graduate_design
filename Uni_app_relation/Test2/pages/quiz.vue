@@ -46,17 +46,19 @@
 				</view>
 			</view>
 		</view>
-		<view v-if="completed && quizBirds.length" class="quiz-bird-list-section">
-			<text class="history-title">本次涉及鸟类</text>
-			<QuizBirdList :birds="quizBirds" />
-		</view>
 	</view>
 </template>
 
 <script>
 // 脚本部分：处理Quiz问题选择、显示答案、下一题、完成逻辑和历史记录
 import { requestApi } from '@/common/api';
-import QuizBirdList from '@/components/QuizBirdList.vue';
+import { localizeBirdName } from '@/common/bird_name_localizer';
+const QUESTION_TYPE_MARKERS = {
+	FAMILY: '属于哪个科属',
+	PROTECT_LEVEL: '保护级别',
+	FEATURE: '外形特征为',
+	REGION: '分布在'
+};
 export default {
 	data() {
 		return {
@@ -68,8 +70,7 @@ export default {
 			completed: false,
 			lastChoice: -1,
 			quizHistoryList: [],
-			// 在data中增加本次涉及鸟类数组
-			quizBirds: []
+			optionLocked: false
 		};
 	},
 	onLoad() {
@@ -77,6 +78,36 @@ export default {
 		this.loadQuiz();
 	},
 	methods: {
+		async localizeBirdNameInQuestion(questionText) {
+			if (!this.shouldLocalizeBirdNameInQuestion(questionText)) {
+				return questionText;
+			}
+			const match = questionText.match(/“([^”]+)”/);
+			if (!match || !match[1]) return questionText;
+			const localized = await localizeBirdName(match[1], requestApi);
+			const escaped = match[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return questionText.replace(new RegExp(`“${escaped}”`, 'g'), `“${localized}”`);
+		},
+		shouldLocalizeBirdNameInQuestion(questionText) {
+			if (!questionText) return false;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FAMILY) || questionText.includes(QUESTION_TYPE_MARKERS.PROTECT_LEVEL);
+		},
+		shouldLocalizeOptions(questionText) {
+			if (!questionText) return false;
+			return questionText.includes(QUESTION_TYPE_MARKERS.FEATURE) || questionText.includes(QUESTION_TYPE_MARKERS.REGION);
+		},
+		async localizeQuizItem(item) {
+			const localizedQuestionPromise = this.localizeBirdNameInQuestion(item.q);
+			const localizedOptionsPromise = this.shouldLocalizeOptions(item.q)
+				? Promise.all(item.opts.map((opt) => localizeBirdName(opt, requestApi)))
+				: Promise.resolve(item.opts);
+			const [localizedQuestion, localizedOptions] = await Promise.all([localizedQuestionPromise, localizedOptionsPromise]);
+			return {
+				...item,
+				q: localizedQuestion,
+				opts: localizedOptions
+			};
+		},
 		async loadQuiz() {
 			// 骨架屏提示或Loading效果
 			uni.showLoading({ title: '加载题库中...', mask: true });
@@ -106,18 +137,22 @@ export default {
 						let mockData = dbMockQuestions.sort(() => 0.5 - Math.random());
 						apiQuestions = apiQuestions.concat(mockData).slice(0, 5);
 					}
-					this.questions = apiQuestions;
+					this.questions = await Promise.all(apiQuestions.map((item) => this.localizeQuizItem(item)));
 				} else {
-					this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+					this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 				}
 			} catch (e) {
 				console.error('Quiz fetch error:', e);
-				this.questions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				const fallbackQuestions = dbMockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+				this.questions = await Promise.all(fallbackQuestions.map((item) => this.localizeQuizItem(item)));
 			} finally {
 				uni.hideLoading();
 			}
 		},
 		choose(idx) {
+			if (this.optionLocked) return; // 已答过
+			this.optionLocked = true;
 			this.lastChoice = idx;
 			this.showAnswer = true;
 			if (idx === this.questions[this.current].a) {
@@ -136,6 +171,7 @@ export default {
 			this.current++;
 			this.showAnswer = false;
 			this.lastChoice = -1;
+			this.optionLocked = false;
 		},
 		completeQuiz() {
 			this.quizHistory.push({
@@ -143,24 +179,18 @@ export default {
 				correct: this.lastChoice === this.questions[this.current].a
 			});
 			this.completed = true;
-			// 统计本次Quiz涉及的所有鸟类（从题干或选项中提取，假设题干或选项含有鸟名）
-			const birdNames = new Set();
-			this.questions.forEach(q => {
-				// 简单正则提取题干和选项中的鸟名
-				[q.q, ...(q.opts || [])].forEach(str => {
-					if (typeof str === 'string') {
-						// 假设鸟名为2-8个汉字或英文单词
-						(str.match(/[\u4e00-\u9fa5A-Za-z_\- ]{2,20}/g) || []).forEach(n => birdNames.add(n.trim()));
+			// 弹窗提示
+			uni.showModal({
+				title: '答题完成',
+				content: `你得了${this.score}分，要去搜搜看自己的错题吗？`,
+				confirmText: '去搜搜',
+				cancelText: '不用了',
+				success: (res) => {
+					if (res.confirm) {
+						uni.navigateTo({ url: '/pages/encyclopedia' });
+					} else {
+						uni.reLaunch({ url: '/pages/index/index' });
 					}
-				});
-			});
-			// 用百科接口查找所有相关鸟类详细信息
-			requestApi({ path: '/api/bird?page=1&page_size=400', method: 'GET' }).then(res => {
-				const response = res.data ? res : (res[1] || {});
-				if (response.statusCode === 200 && response.data && response.data.code === 0) {
-					this.quizBirds = response.data.data.filter(b => birdNames.has(b.name) || birdNames.has(b.english_name));
-				} else {
-					this.quizBirds = [];
 				}
 			});
 			// 保存历史到本地存储
@@ -180,6 +210,7 @@ export default {
 			this.completed = false;
 			this.showAnswer = false;
 			this.lastChoice = -1;
+			this.optionLocked = false;
 		},
 		exitQuiz() {
 			uni.showModal({
@@ -193,7 +224,6 @@ export default {
 			});
 		}
 	},
-	components: { QuizBirdList }
 };
 </script>
 
@@ -240,5 +270,4 @@ export default {
 
 .quiz-history { margin-top: 40rpx; padding: 30rpx; background: rgba(255,255,255,0.85); border-radius: 24rpx; box-shadow: 0 6rpx 15rpx rgba(0,0,0,0.05); }
 .history-record { font-size: 26rpx; color: #636e72; padding: 16rpx 0; border-bottom: 2rpx dashed #dfe6e9; display: flex; justify-content: space-between; }
-.quiz-bird-list-section { margin: 40rpx 0; }
 </style>
