@@ -18,7 +18,7 @@
 - `/test_UI.py`：本地交互式测试界面  
 - `/get_names.py`：导出模型类别名称数组  
 - `/backend/main.py`：FastAPI 后端服务入口（含预测、推荐、问答等接口）  
-- `/Uni_app_relation/`：UniApp 相关工程文件  
+- `/Uni_app_relation/`：UniApp 相关前端工程文件  
 
 ## 环境准备
 
